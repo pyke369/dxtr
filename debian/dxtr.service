@@ -1,0 +1,16 @@
+[Unit]
+Description=distributed extended traceroute
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/default/dxtr
+StandardOutput=null
+StandardError=journal
+LimitNOFILE=65536
+ExecStart=/usr/bin/dxtr $CONFIGURATION
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

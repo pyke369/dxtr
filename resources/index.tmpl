@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>{{ .progname }} v{{ .version }}</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=820, initial-scale=1.0" />
+<link rel="icon" href="data:;base64,iVBORw0KGgo=">
+<link rel="stylesheet" href="/css/bootstrap-5.1.3.min.css" />
+<style>
+.card {
+  box-shadow: 0px 0px 8px -2px rgba(0, 0, 0, .3);
+}
+.btn:focus, input:focus {
+  outline: 0px !important;
+  box-shadow: none !important;
+}
+.btn-sm {
+  width: auto;
+  height: 16px;
+  font-size: 10px;
+  line-height: 7px;
+  margin-top: -3px;
+  opacity: .6;
+}
+.row {
+  color: #505050;
+  font-size: 12px;
+  line-height: 17px;
+}
+.flag {
+  margin-bottom: 2px;
+  width: 16px;
+  height: 11px;
+}
+.cell {
+  white-space: nowrap;
+  overflow: hidden;
+}
+table {
+  table-layout: fixed;
+}
+th {
+  padding: 2px 4px 2px 4px !important;
+  font-size: 10px;
+  color: #606060 !important;
+}
+td {
+  padding: 2px 4px 2px 4px !important;
+  font-size: 10px;
+  color: #606060 !important;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.col-index {
+  width: 20px !important;
+}
+.col-asnum {
+  width: 70px !important;
+}
+.col-metric {
+  width: 50px !important;
+  font-family: monospace;
+  font-size: 9px;
+}
+a {
+  border-bottom: 1px dotted;
+  text-decoration: none;
+  color: #505050;
+}
+a:hover {
+  color: #505050;
+}
+.tooltip {
+  font-size: 10px;
+  opacity: 0.7 !important;
+}
+</style>
+<script src="/js/jquery-3.6.0.min.js+sprintf-1.1.2.min.js+bootstrap-5.1.3.min.js"></script>
+</head>
+
+<body>
+  <div class="row" style="width:800px; margin:10px auto 10px auto">
+    <div class="col-12">
+      <div class="card rounded-3 mb-3">
+        <div class="card-header ps-2 pe-2 pt-1 pb-1">
+          <div class="row gx-1">
+            <div class="cell col-4 ps-1 pe-1">
+              <img class="flag me-2" src="/img/{{ default "us" .remote.country_code | lower }}.gif" />
+              {{ default "???" .remote.city_name }} / {{ default "???" .remote.country_name }}
+            </div>
+            <div class="cell col-2 text-end ps-1 pe-3">{{ .remote.remote }}</div>
+            <div class="cell col-5 ps-3 pe-1">{{ default "???" .remote.as_number }} {{ default "???" .remote.as_name }}</div>
+            <div class="cell col-1 text-end ps-1 pe-1">
+              <button id="redo" type="button" class="btn btn-primary btn-sm" onclick="probe()">redo</button>
+              <div id="spinner" class="spinner-border spinner-border-sm text-secondary" style="margin-top:1px; margin-right:10px" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="results"></div>
+    </div>
+  </div>
+</body>
+
+<script>
+function probe() {
+    var parts = location.href.split("?");
+
+    $("#results").html('');
+    $("#redo").hide();
+    $("#spinner").show();
+    $.ajax({
+        url: "/probe" + (parts.length > 1 ? "?" + parts[1] : ""),
+        timeout: 30000,
+        complete: function() {
+            $("#spinner").hide();
+            $("#redo").show();
+        },
+        success: function(data, status, request) {
+            var content = [];
+
+            $.each(data, function(unused, entry) {
+                var probe = [];
+
+                probe.push(
+                    '<table class="table table-sm table-hover mb-0">' +
+                    '  <thead>' +
+                    '    <tr>' +
+                    '      <th class="col-index text-end">#</th>' +
+                    '      <th class="col-asnum text-end">asnum</th>' +
+                    '      <th class="col-name">name</th>' +
+                    '      <th class="col-metric text-center">avg</th>' +
+                    '      <th class="col-metric text-center">last</th>' +
+                    '      <th class="col-metric text-center">wrst</th>' +
+                    '      <th class="col-metric text-center">best</th>' +
+                    '      <th class="col-metric text-center">stdev</th>' +
+                    '      <th class="col-metric text-center">loss</th>' +
+                    '    </tr>' +
+                    '  </thead>' +
+                    '<tbody>'
+                );
+                $.each(entry.probe, function(index, hop) {
+                    probe.push(sprintf(
+                        '<tr>' +
+                        '  <td class="col-index text-end border-end">%(index)d</td>' +
+                        '  <td class="col-asnum text-end border-end">%(asnum)s</td>' +
+                        '  <td class="col-name border-end">%(name)s</td>' +
+                        '  <td class="col-metric text-end border-end">%(avg)s</td>' +
+                        '  <td class="col-metric text-end border-end">%(last)s</td>' +
+                        '  <td class="col-metric text-end border-end">%(wrst)s</td>' +
+                        '  <td class="col-metric text-end border-end">%(best)s</td>' +
+                        '  <td class="col-metric text-end border-end">%(stdev)s</td>' +
+                        '  <td class="col-metric text-end">%(loss)s</td>' +
+                        '</tr>',
+                        {
+                            index: index + 1,
+                            asnum: hop[2] == "" ? '-' : sprintf('<a href="#" title="%s" data-toggle="tooltip" onclick="return false;">%s</a>', hop[3], hop[2]),
+                            name:  hop[0] == "" ? '-' : hop[0],
+                            avg:   hop[0] == "" ? '-' : sprintf('%.1fms', hop[6]),
+                            last:  hop[0] == "" ? '-' : sprintf('%.1fms', hop[4]),
+                            wrst:  hop[0] == "" ? '-' : sprintf('%.1fms', hop[5]),
+                            best:  hop[0] == "" ? '-' : sprintf('%.1fms', hop[7]),
+                            stdev: hop[0] == "" ? '-' : sprintf('%.1fms', hop[8]),
+                            loss:  sprintf('%d%%', hop[9]),
+                        }
+                    ));
+                });
+                probe.push(
+                    '</tbody>' +
+                    '</table>'
+                );
+
+                content.push(sprintf(
+                    '<div class="card rounded-3 mb-3">' +
+                    '  <div class="card-header ps-2 pe-2 pt-1 pb-1">' +
+                    '    <div class="row gx-1">' +
+                    '      <div class="cell col-11 ps-1 pe-1">' +
+                    '        <img class="flag me-2" src="/img/%(country)s.gif" />' +
+                    '        %(description)s' +
+                    '      </div>' +
+                    '      <div class="cell col-1 text-end ps-1 pe-1">' +
+                    '        <span>%(id)s</span>' +
+                    '      </div>' +
+                    '    </div>' +
+                    '  </div>' +
+                    '  <div class="card-body ps-2 pe-2 pt-0 pb-1">%(probe)s</div>' +
+                    '  </div>' +
+                    '</div>',
+                    {
+                        id:          entry.id,
+                        country:     entry.country,
+                        description: entry.description,
+                        probe:       probe.join("\n"),
+                    }
+                ));
+            });
+            $("#results").html(content.join(''));
+            $('[data-toggle="tooltip"]').tooltip();
+        }
+    });
+}
+probe();
+</script>
+
+</html>

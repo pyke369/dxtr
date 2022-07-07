@@ -1,0 +1,11 @@
+Source: dxtr
+Section: net
+Priority: optional
+Maintainer: Pierre-Yves Kerembellec <py.kerembellec@gmail.com>
+Build-Depends: debhelper (>= 5), golang-1.19
+Standards-Version: 3.7.2
+
+Package: dxtr
+Architecture: any
+Description: Distributed eXtensible TraceRoute
+
