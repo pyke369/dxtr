@@ -1,0 +1,8 @@
+dxtr
+rpack
+resources.go
+debian/files
+debian/*substvars*
+debian/*debhelper*
+*.upx
+_*

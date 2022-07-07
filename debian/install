@@ -1,0 +1,4 @@
+dxtr usr/bin
+conf/dxtr.conf etc/dxtr
+conf/cert.pem etc/dxtr
+conf/key.pem etc/dxtr
